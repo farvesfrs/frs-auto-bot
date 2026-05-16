@@ -15,6 +15,7 @@
   --red:     #ff3355;
   --yellow:  #ffd600;
   --blue:    #2979ff;
+  --orange:  #ff9800;
   --text:    #c8d8e8;
   --muted:   #4a6080;
 }
@@ -57,6 +58,99 @@ body {
   font-family: 'Share Tech Mono', monospace;
 }
 
+/* MODE TOGGLE */
+.mode-toggle {
+  display: flex;
+  margin: 12px 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.mode-btn {
+  flex: 1;
+  padding: 11px 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 1px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #081222;
+  color: var(--muted);
+}
+.mode-btn.active-paper {
+  background: #1a0f00;
+  color: var(--orange);
+  border-bottom: 2px solid var(--orange);
+}
+.mode-btn.active-live {
+  background: #031a0d;
+  color: var(--green);
+  border-bottom: 2px solid var(--green);
+}
+
+/* PAPER BANNER */
+.paper-banner {
+  margin: 8px 12px 0;
+  padding: 10px 14px;
+  background: #1a0f00;
+  border: 1px solid var(--orange);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--orange);
+  letter-spacing: 0.5px;
+  display: none;
+}
+.paper-banner.show { display: block; }
+
+/* PAPER STATS */
+.paper-stats {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 12px 0;
+}
+.paper-stats.show { display: grid; }
+.paper-stat {
+  background: #1a0f00;
+  border: 1px solid var(--orange);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.paper-stat .sv {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--orange);
+  line-height: 1;
+}
+.paper-stat .sl {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* PAPER TRADE LOG */
+.paper-trades-wrap {
+  display: none;
+  margin: 8px 12px 0;
+}
+.paper-trades-wrap.show { display: block; }
+.ptrade-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #0d1929;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+.ptrade-row:last-child { border-bottom: none; }
+
 .status-bar {
   margin: 12px 12px 0;
   padding: 12px 16px;
@@ -69,22 +163,14 @@ body {
   border: 1px solid;
   transition: all 0.3s;
 }
-.status-running {
-  background: #031a0d;
-  color: var(--green);
-  border-color: var(--green);
-}
-.status-stopped {
-  background: #1a0610;
-  color: var(--red);
-  border-color: var(--red);
-}
-.pulse {
-  width:10px; height:10px; border-radius:50%;
-  animation: pulse 1.2s infinite;
-}
-.pulse-green { background:var(--green); box-shadow:0 0 8px var(--green); }
-.pulse-red   { background:var(--red);   box-shadow:0 0 8px var(--red); }
+.status-running      { background:#031a0d; color:var(--green);  border-color:var(--green); }
+.status-paper        { background:#1a0f00; color:var(--orange); border-color:var(--orange); }
+.status-stopped      { background:#1a0610; color:var(--red);    border-color:var(--red); }
+
+.pulse { width:10px; height:10px; border-radius:50%; animation:pulse 1.2s infinite; }
+.pulse-green  { background:var(--green);  box-shadow:0 0 8px var(--green); }
+.pulse-orange { background:var(--orange); box-shadow:0 0 8px var(--orange); }
+.pulse-red    { background:var(--red);    box-shadow:0 0 8px var(--red); }
 @keyframes pulse {
   0%,100% { opacity:1; transform:scale(1); }
   50%      { opacity:.5; transform:scale(1.3); }
@@ -101,8 +187,8 @@ body {
   border: 2px solid;
   transition: all 0.3s;
 }
-.sig-buy  { background:#031a0d; color:var(--green); border-color:var(--green); }
-.sig-sell { background:#1a0610; color:var(--red);   border-color:var(--red); }
+.sig-buy  { background:#031a0d; color:var(--green);  border-color:var(--green); }
+.sig-sell { background:#1a0610; color:var(--red);    border-color:var(--red); }
 .sig-wait { background:#141008; color:var(--yellow); border-color:var(--yellow); }
 
 .stats {
@@ -132,9 +218,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-.green { color: var(--green) !important; }
-.red   { color: var(--red)   !important; }
-.yellow{ color: var(--yellow)!important; }
+.green  { color: var(--green)  !important; }
+.red    { color: var(--red)    !important; }
+.yellow { color: var(--yellow) !important; }
+.orange { color: var(--orange) !important; }
 
 .card {
   background: var(--card);
@@ -193,6 +280,14 @@ input[type="password"] { letter-spacing: 2px; }
 .row2 { display:flex; gap:10px; }
 .row2 > div { flex:1; }
 
+/* Live-only fields */
+.live-only { transition: opacity 0.2s; }
+.live-only.hidden { opacity: 0.3; pointer-events: none; }
+
+/* Paper-only fields */
+.paper-only { display:none; }
+.paper-only.show { display: block; }
+
 .btn-start {
   width: 100%;
   padding: 15px;
@@ -207,6 +302,9 @@ input[type="password"] { letter-spacing: 2px; }
   letter-spacing: 2px;
   margin-bottom: 8px;
   transition: opacity 0.2s;
+}
+.btn-start.paper-start {
+  background: linear-gradient(135deg, #e65100, #ff9800);
 }
 .btn-start:active { opacity: 0.85; }
 
@@ -298,19 +396,33 @@ input[type="password"] { letter-spacing: 2px; }
     <span class="logo-icon">🤖</span>
     <div class="logo-text">
       <h1>FRS AUTO BOT</h1>
-      <p>by Farvees · v1.1</p>
+      <p>by Farvees · v1.2</p>
     </div>
   </div>
-  <span class="version">v1.1</span>
+  <span class="version">v1.2</span>
 </div>
 
+<!-- MODE TOGGLE -->
+<div class="mode-toggle">
+  <button class="mode-btn active-paper" id="btnPaper" onclick="selectMode('paper')">📝 PAPER TRADING</button>
+  <button class="mode-btn" id="btnLive"  onclick="selectMode('live')">💰 LIVE TRADING</button>
+</div>
+
+<!-- PAPER BANNER -->
+<div class="paper-banner show" id="paperBanner">
+  📝 Paper mode: real market data, simulated orders — no real money at risk.
+</div>
+
+<!-- STATUS -->
 <div id="statusBar" class="status-bar status-stopped">
   <span>⏹ BOT STOPPED</span>
   <div class="pulse pulse-red" id="pulseEl"></div>
 </div>
 
+<!-- SIGNAL -->
 <div id="signalBox" class="signal-box sig-wait">⏳ SIGNAL: WAIT</div>
 
+<!-- MAIN STATS -->
 <div class="stats">
   <div class="stat-card">
     <div class="stat-val" id="pnlVal">0%</div>
@@ -326,6 +438,23 @@ input[type="password"] { letter-spacing: 2px; }
   </div>
 </div>
 
+<!-- PAPER STATS -->
+<div class="paper-stats show" id="paperStatsRow">
+  <div class="paper-stat">
+    <div class="sv" id="paperBal">$1000</div>
+    <div class="sl">Paper Balance</div>
+  </div>
+  <div class="paper-stat">
+    <div class="sv" id="paperEq">$1000</div>
+    <div class="sl">Equity</div>
+  </div>
+  <div class="paper-stat">
+    <div class="sv" id="paperRoi">0%</div>
+    <div class="sl">Total ROI</div>
+  </div>
+</div>
+
+<!-- CONFLUENCE CARD -->
 <div class="card">
   <div class="card-header">
     <span>📡 Live Confluence (4H)</span>
@@ -338,7 +467,7 @@ input[type="password"] { letter-spacing: 2px; }
       <div>Trend: <span id="liveTrend">—</span></div>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">BUY CONDITIONS</div>
-    <div class="conf-grid" id="buyGrid">
+    <div class="conf-grid">
       <div class="conf-item" id="cb0"><span class="conf-name">FRS SMC BUY</span><span class="conf-val no">—</span></div>
       <div class="conf-item" id="cb1"><span class="conf-name">CCI &lt; -100</span><span class="conf-val no">—</span></div>
       <div class="conf-item" id="cb2"><span class="conf-name">VWAP Lower</span><span class="conf-val no">—</span></div>
@@ -346,7 +475,7 @@ input[type="password"] { letter-spacing: 2px; }
       <div class="conf-item" id="cb4"><span class="conf-name">EMA Bullish</span><span class="conf-val no">—</span></div>
     </div>
     <div style="font-size:11px;color:var(--muted);margin:10px 0 5px;letter-spacing:1px;">SELL CONDITIONS</div>
-    <div class="conf-grid" id="sellGrid">
+    <div class="conf-grid">
       <div class="conf-item" id="cs0"><span class="conf-name">FRS SMC SELL</span><span class="conf-val no">—</span></div>
       <div class="conf-item" id="cs1"><span class="conf-name">CCI &gt; +100</span><span class="conf-val no">—</span></div>
       <div class="conf-item" id="cs2"><span class="conf-name">VWAP Upper</span><span class="conf-val no">—</span></div>
@@ -356,6 +485,17 @@ input[type="password"] { letter-spacing: 2px; }
   </div>
 </div>
 
+<!-- PAPER TRADE HISTORY -->
+<div class="paper-trades-wrap" id="paperTradesWrap">
+  <div class="card">
+    <div class="card-header">📝 Simulated Trades</div>
+    <div class="card-body" style="padding:0">
+      <div id="paperTradeList" style="min-height:40px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
 <div class="card">
   <div class="card-header">⚙️ Bot Setup</div>
   <div class="card-body">
@@ -377,11 +517,19 @@ input[type="password"] { letter-spacing: 2px; }
       </div>
     </div>
 
-    <label>API Key</label>
-    <input type="password" id="api_key" placeholder="Enter your API Key">
+    <!-- Live-only fields -->
+    <div class="live-only hidden" id="liveFields">
+      <label>API Key</label>
+      <input type="password" id="api_key" placeholder="Enter your API Key">
+      <label>Secret Key</label>
+      <input type="password" id="secret_key" placeholder="Enter your Secret Key">
+    </div>
 
-    <label>Secret Key</label>
-    <input type="password" id="secret_key" placeholder="Enter your Secret Key">
+    <!-- Paper-only fields -->
+    <div class="paper-only show" id="paperFields">
+      <label>Starting Paper Balance (USDT)</label>
+      <input type="number" id="paper_balance" value="1000" min="100" step="100">
+    </div>
 
     <label>Coin</label>
     <select id="coin">
@@ -438,11 +586,12 @@ input[type="password"] { letter-spacing: 2px; }
       </div>
     </div>
 
-    <button class="btn-start" onclick="startBot()">🚀 START FRS BOT</button>
-    <button class="btn-stop"  onclick="stopBot()">⏹ STOP BOT</button>
+    <button class="btn-start paper-start" id="startBtn" onclick="startBot()">📝 START PAPER BOT</button>
+    <button class="btn-stop" onclick="stopBot()">⏹ STOP BOT</button>
   </div>
 </div>
 
+<!-- LOGS -->
 <div class="card">
   <div class="card-header">📋 Live Logs</div>
   <div class="card-body" style="padding:10px">
@@ -455,6 +604,43 @@ input[type="password"] { letter-spacing: 2px; }
 <script>
 const BUY_KEYS  = ["FRS SMC BUY","CCI < -100","VWAP LowerBand","Fib 0.5-0.62","EMA Bullish"];
 const SELL_KEYS = ["FRS SMC SELL","CCI > +100","VWAP UpperBand","Fib Bear Zone","EMA Bearish"];
+
+let currentMode = 'paper';
+let paperStartBal = 1000;
+
+function selectMode(m) {
+  currentMode = m;
+  const btnP  = document.getElementById('btnPaper');
+  const btnL  = document.getElementById('btnLive');
+  const banner = document.getElementById('paperBanner');
+  const liveF  = document.getElementById('liveFields');
+  const paperF = document.getElementById('paperFields');
+  const startBtn = document.getElementById('startBtn');
+  const psRow    = document.getElementById('paperStatsRow');
+  const ptWrap   = document.getElementById('paperTradesWrap');
+
+  if (m === 'paper') {
+    btnP.className = 'mode-btn active-paper';
+    btnL.className = 'mode-btn';
+    banner.classList.add('show');
+    liveF.classList.add('hidden');
+    paperF.classList.add('show');
+    startBtn.textContent = '📝 START PAPER BOT';
+    startBtn.className = 'btn-start paper-start';
+    psRow.classList.add('show');
+    ptWrap.classList.add('show');
+  } else {
+    btnP.className = 'mode-btn';
+    btnL.className = 'mode-btn active-live';
+    banner.classList.remove('show');
+    liveF.classList.remove('hidden');
+    paperF.classList.remove('show');
+    startBtn.textContent = '🚀 START LIVE BOT';
+    startBtn.className = 'btn-start';
+    psRow.classList.remove('show');
+    ptWrap.classList.remove('show');
+  }
+}
 
 function toggleAmt() {
   const v = document.getElementById('amount_mode').value;
@@ -469,23 +655,20 @@ function showToast(msg, color) {
   t.style.color = color;
   t.style.borderColor = color;
   t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3000);
+  setTimeout(function() { t.style.display = 'none'; }, 3000);
 }
 
 function setCheck(id, val) {
   const el  = document.getElementById(id);
   const vEl = el.querySelector('.conf-val');
   if (val === null || val === undefined) {
-    vEl.textContent = '—';
-    vEl.className = 'conf-val no';
+    vEl.textContent = '—'; vEl.className = 'conf-val no';
     el.className = 'conf-item no-border';
   } else if (val) {
-    vEl.textContent = '✅';
-    vEl.className = 'conf-val yes';
+    vEl.textContent = '✅'; vEl.className = 'conf-val yes';
     el.className = 'conf-item yes-border';
   } else {
-    vEl.textContent = '❌';
-    vEl.className = 'conf-val no';
+    vEl.textContent = '❌'; vEl.className = 'conf-val no';
     el.className = 'conf-item no-border';
   }
 }
@@ -494,7 +677,6 @@ function updateConfluence(c) {
   if (!c) return;
   const bc = c.buy_checks  || {};
   const sc = c.sell_checks || {};
-
   BUY_KEYS.forEach(function(k, i)  { setCheck('cb' + i, bc[k]); });
   SELL_KEYS.forEach(function(k, i) { setCheck('cs' + i, sc[k]); });
 
@@ -504,14 +686,11 @@ function updateConfluence(c) {
   badge.textContent = 'BUY ' + bs + '/5 · SELL ' + ss + '/5';
 
   if (bs === 5) {
-    badge.style.background = '#031a0d';
-    badge.style.color = 'var(--green)';
+    badge.style.background = '#031a0d'; badge.style.color = 'var(--green)';
   } else if (ss === 5) {
-    badge.style.background = '#1a0610';
-    badge.style.color = 'var(--red)';
+    badge.style.background = '#1a0610'; badge.style.color = 'var(--red)';
   } else {
-    badge.style.background = '#0a1628';
-    badge.style.color = 'var(--muted)';
+    badge.style.background = '#0a1628'; badge.style.color = 'var(--muted)';
   }
 
   document.getElementById('livePrice').textContent = c.price || '—';
@@ -519,27 +698,66 @@ function updateConfluence(c) {
   document.getElementById('liveTrend').textContent = c.trend || '—';
 }
 
+function updatePaperStats(d) {
+  const bal = d.paper_balance || 0;
+  const eq  = d.paper_equity  || 0;
+  paperStartBal = paperStartBal || 1000;
+  const roi = paperStartBal > 0
+    ? ((bal - paperStartBal) / paperStartBal * 100).toFixed(2)
+    : '0.00';
+
+  document.getElementById('paperBal').textContent = '$' + bal.toFixed(2);
+  document.getElementById('paperEq').textContent  = '$' + eq.toFixed(2);
+
+  const roiEl = document.getElementById('paperRoi');
+  roiEl.textContent = (roi >= 0 ? '+' : '') + roi + '%';
+  roiEl.className = 'sv ' + (parseFloat(roi) >= 0 ? 'green' : 'red');
+
+  const trades = d.paper_trades || [];
+  const list   = document.getElementById('paperTradeList');
+  if (trades.length === 0) {
+    list.innerHTML = '<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px;">No simulated trades yet</div>';
+    return;
+  }
+  list.innerHTML = trades.map(function(t) {
+    const col = t.side === 'buy' ? 'var(--green)' : 'var(--red)';
+    const lbl = t.side === 'buy' ? '▲ BUY' : '▼ SELL';
+    return '<div class="ptrade-row">'
+      + '<span style="color:' + col + ';font-weight:700;">' + lbl + '</span>'
+      + '<span>' + t.symbol + '</span>'
+      + '<span>$' + t.price.toFixed(4) + '</span>'
+      + '<span style="color:var(--muted)">$' + t.amount.toFixed(2) + '</span>'
+      + '<span style="color:var(--muted)">' + t.time + '</span>'
+      + '</div>';
+  }).join('');
+}
+
 async function startBot() {
+  const isPaper = currentMode === 'paper';
+  paperStartBal = parseFloat(document.getElementById('paper_balance').value) || 1000;
+
   const config = {
+    paper_mode     : isPaper,
     exchange       : document.getElementById('exchange').value,
     mode           : document.getElementById('mode').value,
-    api_key        : document.getElementById('api_key').value,
-    secret_key     : document.getElementById('secret_key').value,
+    api_key        : isPaper ? '' : document.getElementById('api_key').value,
+    secret_key     : isPaper ? '' : document.getElementById('secret_key').value,
     coin           : document.getElementById('coin').value,
     amount_mode    : document.getElementById('amount_mode').value,
     trade_amount   : document.getElementById('trade_amount').value,
     capital_percent: document.getElementById('capital_percent').value,
     tp_percent     : document.getElementById('tp').value,
     sl_percent     : document.getElementById('sl').value,
+    paper_balance  : paperStartBal,
   };
   try {
     const res  = await fetch('/start', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(config)
+      body: JSON.stringify(config),
     });
     const data = await res.json();
-    showToast(data.message, data.ok ? 'var(--green)' : 'var(--red)');
+    showToast(data.message, data.ok ? (isPaper ? 'var(--orange)' : 'var(--green)') : 'var(--red)');
   } catch(e) {
     showToast('❌ Connection error', 'var(--red)');
   }
@@ -547,7 +765,7 @@ async function startBot() {
 
 async function stopBot() {
   try {
-    const res  = await fetch('/stop', {method: 'POST'});
+    const res  = await fetch('/stop', { method: 'POST' });
     const data = await res.json();
     showToast(data.message, 'var(--red)');
   } catch(e) {
@@ -559,12 +777,17 @@ async function pollStatus() {
   try {
     const res = await fetch('/status');
     const d   = await res.json();
+    const paper = d.paper_mode;
 
     const bar   = document.getElementById('statusBar');
     const pulse = document.getElementById('pulseEl');
-    if (d.running) {
+    if (d.running && paper) {
+      bar.className = 'status-bar status-paper';
+      bar.querySelector('span').textContent = '📝 PAPER BOT RUNNING';
+      pulse.className = 'pulse pulse-orange';
+    } else if (d.running) {
       bar.className = 'status-bar status-running';
-      bar.querySelector('span').textContent = '▶ BOT RUNNING';
+      bar.querySelector('span').textContent = '▶ LIVE BOT RUNNING';
       pulse.className = 'pulse pulse-green';
     } else {
       bar.className = 'status-bar status-stopped';
@@ -575,9 +798,9 @@ async function pollStatus() {
     const sig    = (d.last_signal || 'WAIT').toUpperCase();
     const sigBox = document.getElementById('signalBox');
     sigBox.className = 'signal-box sig-' + sig.toLowerCase();
-    if (sig === 'BUY')  sigBox.textContent = '🟢 SIGNAL: BUY';
+    if      (sig === 'BUY')  sigBox.textContent = '🟢 SIGNAL: BUY';
     else if (sig === 'SELL') sigBox.textContent = '🔴 SIGNAL: SELL';
-    else sigBox.textContent = '⏳ SIGNAL: WAIT';
+    else                     sigBox.textContent = '⏳ SIGNAL: WAIT';
 
     const pnl   = d.pnl || 0;
     const pnlEl = document.getElementById('pnlVal');
@@ -597,9 +820,9 @@ async function pollStatus() {
       (d.wins || 0) + '/' + (d.losses || 0);
 
     updateConfluence(d.confluence);
+    updatePaperStats(d);
 
-    const logBox = document.getElementById('logBox');
-    logBox.innerHTML = (d.logs || []).map(function(l) {
+    document.getElementById('logBox').innerHTML = (d.logs || []).map(function(l) {
       return '<div class="log-entry">' + l + '</div>';
     }).join('');
 

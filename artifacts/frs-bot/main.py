@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ╔══════════════════════════════════════════╗
-║         FRS AUTO BOT v1.1               ║
+║         FRS AUTO BOT v1.2               ║
 ║   by Farvees - FRS UNIQUE SPARE PARTS   ║
 ╠══════════════════════════════════════════╣
 ║ Strategy : FRS SMC v5 + VWAP Zeiierman  ║
@@ -9,7 +9,7 @@
 ║ Timeframe: 4H                           ║
 ║ Exchange : Binance → MEXC (Phase 2)     ║
 ║ Mode     : SPOT → FUTURES               ║
-║ Fix v1.1 : Timestamp sync + Live UI     ║
+║ v1.2     : Paper Trading / Sim Mode     ║
 ╚══════════════════════════════════════════╝
 """
 
@@ -18,7 +18,6 @@ import ccxt
 import pandas as pd
 import numpy as np
 import time
-import json
 import threading
 from datetime import datetime
 from flask import Flask, request, jsonify
@@ -30,18 +29,22 @@ app = Flask(__name__)
 # GLOBAL BOT STATE
 # ═══════════════════════════════════════════
 bot_state = {
-    "running"      : False,
-    "config"       : {},
-    "logs"         : [],
-    "last_signal"  : "WAIT",
-    "in_trade"     : False,
-    "entry_price"  : None,
-    "trade_side"   : None,
-    "pnl"          : 0.0,
-    "total_trades" : 0,
-    "wins"         : 0,
-    "losses"       : 0,
-    "confluence"   : {
+    "running"       : False,
+    "paper_mode"    : False,
+    "config"        : {},
+    "logs"          : [],
+    "last_signal"   : "WAIT",
+    "in_trade"      : False,
+    "entry_price"   : None,
+    "trade_side"    : None,
+    "pnl"           : 0.0,
+    "total_trades"  : 0,
+    "wins"          : 0,
+    "losses"        : 0,
+    "paper_balance" : 1000.0,
+    "paper_equity"  : 1000.0,
+    "paper_trades"  : [],
+    "confluence"    : {
         "buy_checks" : {},
         "sell_checks": {},
         "buy_score"  : 0,
@@ -122,8 +125,8 @@ def calc_cci(df, length=25, ema_len=14):
 # INDICATOR 4 — Harmonic Rolling VWAP Zeiierman
 # ═══════════════════════════════════════════
 def calc_vwap_zeiierman(df, window=100):
-    src  = (df["high"] + df["low"] + df["close"]) / 3
-    pv   = src * df["volume"]
+    src   = (df["high"] + df["low"] + df["close"]) / 3
+    pv    = src * df["volume"]
     rvwap = pv.rolling(window).sum() / df["volume"].rolling(window).sum()
 
     tr1 = df["high"] - df["low"]
@@ -162,9 +165,9 @@ def check_fib_zone(df, lookback=50):
 def run_confluence(df):
     price = df["close"].iloc[-1]
 
-    smc                    = detect_frs_smc(df)
-    cci, cci_ema           = calc_cci(df, 25, 14)
-    rvwap, ub2, lb2, ub3, lb3 = calc_vwap_zeiierman(df, 100)
+    smc                          = detect_frs_smc(df)
+    cci, cci_ema                 = calc_cci(df, 25, 14)
+    rvwap, ub2, lb2, ub3, lb3   = calc_vwap_zeiierman(df, 100)
     bull_fib, bear_fib, f50, f62 = check_fib_zone(df)
 
     cci_val  = cci.iloc[-1]
@@ -213,13 +216,12 @@ def run_confluence(df):
 
 # ═══════════════════════════════════════════
 # EXCHANGE CONNECT
+# Paper mode uses public API only (no keys needed)
 # ═══════════════════════════════════════════
-def get_exchange(config):
+def get_exchange(config, paper=False):
     name   = config.get("exchange", "binance").lower()
     mode   = config.get("mode", "spot").lower()
     params = {
-        "apiKey"         : config.get("api_key", ""),
-        "secret"         : config.get("secret_key", ""),
         "enableRateLimit": True,
         "options"        : {
             "defaultType"            : mode,
@@ -227,9 +229,14 @@ def get_exchange(config):
             "recvWindow"             : 10000,
         },
     }
+    if not paper:
+        params["apiKey"] = config.get("api_key", "")
+        params["secret"] = config.get("secret_key", "")
+
     if name == "binance":
         ex = ccxt.binance(params)
-        ex.load_time_difference()
+        if not paper:
+            ex.load_time_difference()
         return ex
     elif name == "mexc":
         return ccxt.mexc(params)
@@ -246,7 +253,7 @@ def fetch_candles(exchange, symbol, limit=300):
     return df
 
 # ═══════════════════════════════════════════
-# TRADE AMOUNT
+# TRADE AMOUNT (real mode)
 # ═══════════════════════════════════════════
 def get_trade_amount(exchange, config):
     mode = config.get("amount_mode", "fixed")
@@ -258,7 +265,17 @@ def get_trade_amount(exchange, config):
     return max(10.0, float(config.get("trade_amount", 10)))
 
 # ═══════════════════════════════════════════
-# PLACE ORDER
+# PAPER TRADE AMOUNT
+# ═══════════════════════════════════════════
+def get_paper_amount(config):
+    mode = config.get("amount_mode", "fixed")
+    if mode == "percent":
+        pct = float(config.get("capital_percent", 50)) / 100
+        return max(10.0, bot_state["paper_balance"] * pct)
+    return max(10.0, float(config.get("trade_amount", 10)))
+
+# ═══════════════════════════════════════════
+# PLACE REAL ORDER
 # ═══════════════════════════════════════════
 def place_order(exchange, side, symbol, amount_usdt):
     try:
@@ -275,30 +292,58 @@ def place_order(exchange, side, symbol, amount_usdt):
         return None, None
 
 # ═══════════════════════════════════════════
+# PAPER ORDER — simulated, no real money
+# ═══════════════════════════════════════════
+def paper_order(side, symbol, amount_usdt, price):
+    qty = round(amount_usdt / price, 6)
+    log(f"📝 [PAPER] {side.upper()} {qty} {symbol} @ ${price:.4f} (sim ${amount_usdt:.2f})")
+    record = {
+        "side"  : side,
+        "symbol": symbol,
+        "qty"   : qty,
+        "price" : price,
+        "amount": amount_usdt,
+        "time"  : datetime.now().strftime("%H:%M:%S"),
+    }
+    bot_state["paper_trades"].insert(0, record)
+    bot_state["paper_trades"] = bot_state["paper_trades"][:50]
+    return {"id": "paper", "status": "closed"}, price
+
+# ═══════════════════════════════════════════
 # BOT MAIN LOOP
 # ═══════════════════════════════════════════
 def bot_loop():
-    config   = bot_state["config"]
-    symbol   = config.get("coin", "BTC/USDT")
-    tp_pct   = float(config.get("tp_percent", 4.0))
-    sl_pct   = float(config.get("sl_percent", 2.0))
-    ex_name  = config.get("exchange", "Binance").upper()
+    config     = bot_state["config"]
+    symbol     = config.get("coin", "BTC/USDT")
+    tp_pct     = float(config.get("tp_percent", 4.0))
+    sl_pct     = float(config.get("sl_percent", 2.0))
+    ex_name    = config.get("exchange", "Binance").upper()
+    paper      = bot_state["paper_mode"]
 
     in_trade    = False
     entry_price = None
     trade_side  = None
 
-    log(f"🤖 FRS AUTO BOT Started!")
+    mode_label = "📝 PAPER" if paper else "💰 LIVE"
+    log(f"🤖 FRS AUTO BOT v1.2 Started! {mode_label}")
     log(f"📡 Exchange : {ex_name}")
     log(f"🪙 Coin     : {symbol}")
     log(f"⏰ Timeframe: 4H")
     log(f"🎯 TP: {tp_pct}% | SL: {sl_pct}%")
 
+    if paper:
+        log(f"💵 Paper Balance: ${bot_state['paper_balance']:.2f} USDT (virtual)")
+        log("🔒 No real orders will be placed")
+
     try:
-        exchange = get_exchange(config)
-        balance  = exchange.fetch_balance()
-        usdt_bal = balance.get("USDT", {}).get("free", 0)
-        log(f"✅ {ex_name} Connected! Balance: ${usdt_bal:.2f}")
+        exchange = get_exchange(config, paper=paper)
+        if not paper:
+            balance  = exchange.fetch_balance()
+            usdt_bal = balance.get("USDT", {}).get("free", 0)
+            log(f"✅ {ex_name} Connected! Balance: ${usdt_bal:.2f}")
+        else:
+            exchange.load_markets()
+            log(f"✅ {ex_name} Public Data Connected!")
     except Exception as e:
         log(f"❌ Connect failed: {e}")
         bot_state["running"] = False
@@ -330,6 +375,7 @@ def bot_loop():
                 f"BUY:{result['buy_score']}/5 "
                 f"SELL:{result['sell_score']}/5 → {signal}")
 
+            # ── TP / SL check ──
             if in_trade and entry_price:
                 if trade_side == "buy":
                     pnl = (price - entry_price) / entry_price * 100
@@ -340,10 +386,24 @@ def bot_loop():
                 bot_state["in_trade"]    = True
                 bot_state["entry_price"] = entry_price
 
+                # Update paper equity live
+                if paper:
+                    amt = get_paper_amount(config)
+                    bot_state["paper_equity"] = round(
+                        bot_state["paper_balance"] + amt * pnl / 100, 2)
+
                 if pnl >= tp_pct:
                     log(f"🎯 TP HIT! +{pnl:.2f}%")
-                    place_order(exchange, "sell", symbol,
-                                get_trade_amount(exchange, config))
+                    amt = get_paper_amount(config) if paper else get_trade_amount(exchange, config)
+                    if paper:
+                        paper_order("sell", symbol, amt, price)
+                        profit = round(amt * pnl / 100, 2)
+                        bot_state["paper_balance"] = round(
+                            bot_state["paper_balance"] + profit, 2)
+                        bot_state["paper_equity"] = bot_state["paper_balance"]
+                        log(f"💵 Paper Balance: ${bot_state['paper_balance']:.2f} (+${profit:.2f})")
+                    else:
+                        place_order(exchange, "sell", symbol, amt)
                     bot_state["wins"] += 1
                     bot_state["total_trades"] += 1
                     in_trade = entry_price = trade_side = None
@@ -352,21 +412,32 @@ def bot_loop():
 
                 elif pnl <= -sl_pct:
                     log(f"🛑 SL HIT! {pnl:.2f}%")
-                    place_order(exchange, "sell", symbol,
-                                get_trade_amount(exchange, config))
+                    amt = get_paper_amount(config) if paper else get_trade_amount(exchange, config)
+                    if paper:
+                        paper_order("sell", symbol, amt, price)
+                        loss = round(amt * abs(pnl) / 100, 2)
+                        bot_state["paper_balance"] = round(
+                            bot_state["paper_balance"] - loss, 2)
+                        bot_state["paper_equity"] = bot_state["paper_balance"]
+                        log(f"💵 Paper Balance: ${bot_state['paper_balance']:.2f} (-${loss:.2f})")
+                    else:
+                        place_order(exchange, "sell", symbol, amt)
                     bot_state["losses"] += 1
                     bot_state["total_trades"] += 1
                     in_trade = entry_price = trade_side = None
                     bot_state["in_trade"]    = False
                     bot_state["entry_price"] = None
 
+            # ── New entry ──
             if not in_trade:
-                amt = get_trade_amount(exchange, config)
+                amt = get_paper_amount(config) if paper else get_trade_amount(exchange, config)
 
                 if signal == "BUY":
                     log(f"🟢 5/5 Confluence! BUY ${amt:.2f}")
-                    order, ep = place_order(
-                                    exchange, "buy", symbol, amt)
+                    if paper:
+                        order, ep = paper_order("buy", symbol, amt, price)
+                    else:
+                        order, ep = place_order(exchange, "buy", symbol, amt)
                     if order:
                         in_trade    = True
                         entry_price = ep
@@ -378,8 +449,10 @@ def bot_loop():
                 elif signal == "SELL":
                     if config.get("mode") == "futures":
                         log(f"🔴 5/5 Confluence! SHORT ${amt:.2f}")
-                        order, ep = place_order(
-                                        exchange, "sell", symbol, amt)
+                        if paper:
+                            order, ep = paper_order("sell", symbol, amt, price)
+                        else:
+                            order, ep = place_order(exchange, "sell", symbol, amt)
                         if order:
                             in_trade    = True
                             entry_price = ep
@@ -414,21 +487,30 @@ def index():
 def start():
     if bot_state["running"]:
         return jsonify({"ok": False, "message": "⚠️ Already running!"})
-    cfg = request.get_json()
-    if not cfg.get("api_key") or not cfg.get("secret_key"):
-        return jsonify({"ok": False, "message": "❌ API Key & Secret required!"})
+    cfg   = request.get_json()
+    paper = cfg.get("paper_mode", False)
+
+    if not paper and (not cfg.get("api_key") or not cfg.get("secret_key")):
+        return jsonify({"ok": False, "message": "❌ API Key & Secret required for Live mode!"})
+
+    paper_start_bal = float(cfg.get("paper_balance", 1000.0))
+
     bot_state.update({
-        "config"      : cfg,
-        "running"     : True,
-        "logs"        : [],
-        "pnl"         : 0,
-        "total_trades": 0,
-        "wins"        : 0,
-        "losses"      : 0,
-        "in_trade"    : False,
-        "entry_price" : None,
-        "last_signal" : "WAIT",
-        "confluence"  : {
+        "config"        : cfg,
+        "running"       : True,
+        "paper_mode"    : paper,
+        "logs"          : [],
+        "pnl"           : 0,
+        "total_trades"  : 0,
+        "wins"          : 0,
+        "losses"        : 0,
+        "in_trade"      : False,
+        "entry_price"   : None,
+        "last_signal"   : "WAIT",
+        "paper_balance" : paper_start_bal,
+        "paper_equity"  : paper_start_bal,
+        "paper_trades"  : [],
+        "confluence"    : {
             "buy_checks" : {}, "sell_checks": {},
             "buy_score"  : 0,  "sell_score" : 0,
             "cci"        : 0,  "vwap"       : 0,
@@ -437,7 +519,8 @@ def start():
         },
     })
     threading.Thread(target=bot_loop, daemon=True).start()
-    return jsonify({"ok": True, "message": "🚀 FRS Bot Started!"})
+    label = "📝 Paper Trading" if paper else "💰 Live Trading"
+    return jsonify({"ok": True, "message": f"🚀 FRS Bot Started! ({label})"})
 
 @app.route("/stop", methods=["POST"])
 def stop():
@@ -447,24 +530,28 @@ def stop():
 @app.route("/status")
 def status():
     return jsonify({
-        "running"     : bot_state["running"],
-        "last_signal" : bot_state["last_signal"],
-        "in_trade"    : bot_state["in_trade"],
-        "entry_price" : bot_state["entry_price"],
-        "trade_side"  : bot_state["trade_side"],
-        "pnl"         : bot_state["pnl"],
-        "total_trades": bot_state["total_trades"],
-        "wins"        : bot_state["wins"],
-        "losses"      : bot_state["losses"],
-        "logs"        : bot_state["logs"][:25],
-        "confluence"  : bot_state["confluence"],
+        "running"       : bot_state["running"],
+        "paper_mode"    : bot_state["paper_mode"],
+        "last_signal"   : bot_state["last_signal"],
+        "in_trade"      : bot_state["in_trade"],
+        "entry_price"   : bot_state["entry_price"],
+        "trade_side"    : bot_state["trade_side"],
+        "pnl"           : bot_state["pnl"],
+        "total_trades"  : bot_state["total_trades"],
+        "wins"          : bot_state["wins"],
+        "losses"        : bot_state["losses"],
+        "paper_balance" : bot_state["paper_balance"],
+        "paper_equity"  : bot_state["paper_equity"],
+        "paper_trades"  : bot_state["paper_trades"][:10],
+        "logs"          : bot_state["logs"][:25],
+        "confluence"    : bot_state["confluence"],
     })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print("=" * 45)
-    print("  🤖 FRS AUTO BOT v1.1 by Farvees")
+    print("  🤖 FRS AUTO BOT v1.2 by Farvees")
     print(f"  📱 Open: http://localhost:{port}")
-    print("  ✅ Fix : Timestamp + Live Confluence")
+    print("  ✅ Paper Trading Mode Added")
     print("=" * 45)
     app.run(host="0.0.0.0", port=port, debug=False)
