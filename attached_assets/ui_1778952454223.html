@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FRS AUTO BOT</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+:root {
+  --bg:      #060b14;
+  --card:    #0d1929;
+  --border:  #1a2d4a;
+  --green:   #00ff88;
+  --red:     #ff3355;
+  --yellow:  #ffd600;
+  --blue:    #2979ff;
+  --text:    #c8d8e8;
+  --muted:   #4a6080;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  min-height: 100vh;
+  padding-bottom: 30px;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #0d1929 0%, #0a1628 100%);
+  border-bottom: 2px solid var(--green);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { font-size:28px; }
+.logo-text h1 {
+  font-size: 20px; font-weight:700;
+  color: var(--green);
+  letter-spacing: 2px;
+  line-height:1;
+}
+.logo-text p { font-size:11px; color:var(--muted); letter-spacing:1px; }
+.version {
+  background: #0a2a1a;
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px solid var(--green);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* STATUS BAR */
+.status-bar {
+  margin: 12px 12px 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 15px;
+  border: 1px solid;
+  transition: all 0.3s;
+}
+.status-running {
+  background: #031a0d;
+  color: var(--green);
+  border-color: var(--green);
+}
+.status-stopped {
+  background: #1a0610;
+  color: var(--red);
+  border-color: var(--red);
+}
+.pulse {
+  width:10px; height:10px; border-radius:50%;
+  animation: pulse 1.2s infinite;
+}
+.pulse-green { background:var(--green); box-shadow:0 0 8px var(--green); }
+.pulse-red   { background:var(--red);   box-shadow:0 0 8px var(--red); }
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.5; transform:scale(1.3); }
+}
+
+/* SIGNAL BOX */
+.signal-box {
+  margin: 10px 12px;
+  padding: 14px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  border: 2px solid;
+  transition: all 0.3s;
+}
+.sig-buy  { background:#031a0d; color:var(--green); border-color:var(--green); }
+.sig-sell { background:#1a0610; color:var(--red);   border-color:var(--red); }
+.sig-wait { background:#141008; color:var(--yellow); border-color:var(--yellow); }
+
+/* STATS GRID */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 12px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--green);
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.green { color: var(--green) !important; }
+.red   { color: var(--red)   !important; }
+.yellow{ color: var(--yellow)!important; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 10px 12px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 10px 14px;
+  background: #0a1628;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.score-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.card-body { padding: 14px; }
+
+/* FORM */
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+input, select {
+  width: 100%;
+  background: #081222;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--blue); }
+input[type="password"] { letter-spacing: 2px; }
+
+.row2 { display:flex; gap:10px; }
+.row2 > div { flex:1; }
+
+/* BUTTONS */
+.btn-start {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #00cc66, #00ff88);
+  color: #000;
+  font-weight: 700;
+  font-size: 17px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  transition: opacity 0.2s;
+}
+.btn-start:active { opacity: 0.85; }
+
+.btn-stop {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: var(--red);
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid var(--red);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+}
+.btn-stop:active { background: #1a0610; }
+
+/* LOG BOX */
+.log-box {
+  background: #04080f;
+  border-radius: 8px;
+  padding: 10px;
+  height: 220px;
+  overflow-y: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+.log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid #0d1929;
+  color: #7a9ab5;
+  line-height: 1.4;
+}
+.log-entry:first-child { color: var(--text); }
+
+/* CONFLUENCE GRID */
+.conf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.conf-item {
+  background: #081222;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  transition: border-color 0.3s;
+}
+.conf-item.yes-border { border-color: var(--green); }
+.conf-item.no-border  { border-color: var(--border); }
+.conf-name { color: var(--muted); }
+.conf-val  { font-weight:700; font-size:13px; }
+.yes { color: var(--green); }
+.no  { color: var(--red); }
+
+/* PRICE ROW */
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.price-row span { color: var(--text); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom:20px; left:50%;
+  transform: translateX(-50%);
+  background: #0d1929;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 999;
+  display: none;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <span class="logo-icon">🤖</span>
+    <div class="logo-text">
+      <h1>FRS AUTO BOT</h1>
+      <p>by Farvees · v1.1</p>
+    </div>
+  </div>
+  <span class="version">v1.1</span>
+</div>
+
+<!-- STATUS -->
+<div id="statusBar" class="status-bar status-stopped">
+  <span>⏹ BOT STOPPED</span>
+  <div class="pulse pulse-red" id="pulseEl"></div>
+</div>
+
+<!-- SIGNAL -->
+<div id="signalBox" class="signal-box sig-wait">⏳ SIGNAL: WAIT</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-val" id="pnlVal">0%</div>
+    <div class="stat-lbl">P&amp;L</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" id="tradeVal" style="color:var(--yellow)">—</div>
+    <div class="stat-lbl">In Trade</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" id="wlVal">0/0</div>
+    <div class="stat-lbl">W / L</div>
+  </div>
+</div>
+
+<!-- CONFLUENCE STATUS — v1.1 LIVE -->
+<div class="card">
+  <div class="card-header">
+    <span>📡 Live Confluence (4H)</span>
+    <span id="scoreLabel" class="score-badge" style="background:#0a1628;color:var(--muted)">BUY 0/5 · SELL 0/5</span>
+  </div>
+  <div class="card-body">
+    <!-- Price / CCI / Trend row -->
+    <div class="price-row">
+      <div>Price: <span id="livePrice">—</span></div>
+      <div>CCI: <span id="liveCci">—</span></div>
+      <div>Trend: <span id="liveTrend">—</span></div>
+    </div>
+    <!-- BUY checks -->
+    <div style="font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">BUY CONDITIONS</div>
+    <div class="conf-grid" id="buyGrid">
+      <div class="conf-item" id="cb0"><span class="conf-name">FRS SMC BUY</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cb1"><span class="conf-name">CCI &lt; -100</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cb2"><span class="conf-name">VWAP Lower</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cb3"><span class="conf-name">Fib 0.5-0.62</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cb4"><span class="conf-name">EMA Bullish</span><span class="conf-val no">—</span></div>
+    </div>
+    <!-- SELL checks -->
+    <div style="font-size:11px;color:var(--muted);margin:10px 0 5px;letter-spacing:1px;">SELL CONDITIONS</div>
+    <div class="conf-grid" id="sellGrid">
+      <div class="conf-item" id="cs0"><span class="conf-name">FRS SMC SELL</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cs1"><span class="conf-name">CCI &gt; +100</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cs2"><span class="conf-name">VWAP Upper</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cs3"><span class="conf-name">Fib Bear Zone</span><span class="conf-val no">—</span></div>
+      <div class="conf-item" id="cs4"><span class="conf-name">EMA Bearish</span><span class="conf-val no">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="card">
+  <div class="card-header">⚙️ Bot Setup</div>
+  <div class="card-body">
+
+    <div class="row2">
+      <div>
+        <label>Exchange</label>
+        <select id="exchange">
+          <option value="binance">🔶 Binance</option>
+          <option value="mexc">🔷 MEXC</option>
+        </select>
+      </div>
+      <div>
+        <label>Mode</label>
+        <select id="mode">
+          <option value="spot">📈 SPOT</option>
+          <option value="futures">⚡ FUTURES</option>
+        </select>
+      </div>
+    </div>
+
+    <label>API Key</label>
+    <input type="password" id="api_key" placeholder="Enter your API Key">
+
+    <label>Secret Key</label>
+    <input type="password" id="secret_key" placeholder="Enter your Secret Key">
+
+    <label>Coin</label>
+    <select id="coin">
+      <option>BTC/USDT</option>
+      <option>ETH/USDT</option>
+      <option>BNB/USDT</option>
+      <option>SOL/USDT</option>
+      <option>XRP/USDT</option>
+      <option>ADA/USDT</option>
+      <option>DOGE/USDT</option>
+      <option>AVAX/USDT</option>
+      <option>LINK/USDT</option>
+      <option>DOT/USDT</option>
+      <option>MATIC/USDT</option>
+      <option>UNI/USDT</option>
+      <option>ATOM/USDT</option>
+      <option>LTC/USDT</option>
+      <option>NEAR/USDT</option>
+      <option>APT/USDT</option>
+      <option>OP/USDT</option>
+      <option>ARB/USDT</option>
+      <option>SUI/USDT</option>
+      <option>INJ/USDT</option>
+      <option>FTM/USDT</option>
+      <option>HBAR/USDT</option>
+      <option>VET/USDT</option>
+      <option>TRX/USDT</option>
+      <option>SHIB/USDT</option>
+    </select>
+
+    <label>Amount Mode</label>
+    <select id="amount_mode" onchange="toggleAmt()">
+      <option value="fixed">💰 Fixed Amount</option>
+      <option value="percent">📊 % of Capital</option>
+    </select>
+
+    <div id="fixedDiv">
+      <label>Trade Amount (min $10)</label>
+      <input type="number" id="trade_amount" value="10" min="10" step="5">
+    </div>
+    <div id="percentDiv" style="display:none">
+      <label>Capital % (10–100)</label>
+      <input type="number" id="capital_percent" value="50" min="10" max="100">
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Take Profit %</label>
+        <input type="number" id="tp" value="4" min="1" step="0.5">
+      </div>
+      <div>
+        <label>Stop Loss %</label>
+        <input type="number" id="sl" value="2" min="0.5" step="0.5">
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startBot()">🚀 START FRS BOT</button>
+    <button class="btn-stop"  onclick="stopBot()">⏹ STOP BOT</button>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div class="card">
+  <div class="card-header">📋 Live Logs</div>
+  <div class="card-body" style="padding:10px">
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Buy check keys in order ──
+const BUY_KEYS  = ["FRS SMC BUY","CCI < -100","VWAP LowerBand","Fib 0.5-0.62","EMA Bullish"];
+const SELL_KEYS = ["FRS SMC SELL","CCI > +100","VWAP UpperBand","Fib Bear Zone","EMA Bearish"];
+
+function toggleAmt() {
+  const v = document.getElementById('amount_mode').value;
+  document.getElementById('fixedDiv').style.display  = v==='fixed'   ? '' : 'none';
+  document.getElementById('percentDiv').style.display = v==='percent' ? '' : 'none';
+}
+
+function showToast(msg, color='var(--green)') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color;
+  t.style.borderColor = color;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3000);
+}
+
+function setCheck(id, val) {
+  const el  = document.getElementById(id);
+  const vEl = el.querySelector('.conf-val');
+  if (val === null || val === undefined) {
+    vEl.textContent = '—';
+    vEl.className = 'conf-val no';
+    el.className = 'conf-item no-border';
+  } else if (val) {
+    vEl.textContent = '✅';
+    vEl.className = 'conf-val yes';
+    el.className = 'conf-item yes-border';
+  } else {
+    vEl.textContent = '❌';
+    vEl.className = 'conf-val no';
+    el.className = 'conf-item no-border';
+  }
+}
+
+function updateConfluence(c) {
+  if (!c) return;
+  const bc = c.buy_checks  || {};
+  const sc = c.sell_checks || {};
+
+  BUY_KEYS.forEach((k, i)  => setCheck('cb'+i, bc[k]));
+  SELL_KEYS.forEach((k, i) => setCheck('cs'+i, sc[k]));
+
+  // Score badge
+  const bs = c.buy_score  || 0;
+  const ss = c.sell_score || 0;
+  const badge = document.getElementById('scoreLabel');
+  badge
