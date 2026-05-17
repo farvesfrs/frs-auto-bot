@@ -71,6 +71,7 @@ env/
 *.key
 *.pem
 secrets.json
+saved_keys.json
 
 # Logs
 *.log

@@ -21,9 +21,51 @@ import time
 import threading
 from datetime import datetime
 from flask import Flask, request, jsonify
-from replit import db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ═══════════════════════════════════════════
+# PORTABLE KEY STORAGE
+# Uses Replit DB when running on Replit,
+# falls back to env vars → local JSON file
+# on any other host (Render, VPS, etc.)
+# ═══════════════════════════════════════════
+import json as _json
+
+_KEYS_FILE = os.path.join(BASE_DIR, "saved_keys.json")
+
+def _replit_db_available():
+    return bool(os.environ.get("REPLIT_DB_URL"))
+
+def _kv_set(key, value):
+    if _replit_db_available():
+        from replit import db
+        db[key] = value
+        return
+    try:
+        data = _json.load(open(_KEYS_FILE)) if os.path.exists(_KEYS_FILE) else {}
+    except Exception:
+        data = {}
+    data[key] = value
+    with open(_KEYS_FILE, "w") as f:
+        _json.dump(data, f)
+
+def _kv_get(key, default=""):
+    if _replit_db_available():
+        from replit import db
+        val = db.get(key, default)
+        return str(val) if val else default
+    # check environment variable override first (useful for Render dashboard)
+    env_map = {"frs_api_key": "API_KEY", "frs_secret_key": "SECRET_KEY"}
+    env_val = os.environ.get(env_map.get(key, ""), "")
+    if env_val:
+        return env_val
+    try:
+        data = _json.load(open(_KEYS_FILE)) if os.path.exists(_KEYS_FILE) else {}
+        return data.get(key, default)
+    except Exception:
+        return default
+
 app = Flask(__name__)
 
 # ═══════════════════════════════════════════
@@ -544,8 +586,8 @@ def save_keys():
     secret_key = data.get("secret_key", "").strip()
     if not api_key or not secret_key:
         return jsonify({"ok": False, "message": "❌ Both keys are required."})
-    db["frs_api_key"]    = api_key
-    db["frs_secret_key"] = secret_key
+    _kv_set("frs_api_key",    api_key)
+    _kv_set("frs_secret_key", secret_key)
     return jsonify({
         "ok"        : True,
         "message"   : "Keys Saved Permanently ✅",
@@ -555,8 +597,8 @@ def save_keys():
 
 @app.route("/load-keys")
 def load_keys():
-    api_key    = db.get("frs_api_key",    "")
-    secret_key = db.get("frs_secret_key", "")
+    api_key    = _kv_get("frs_api_key",    "")
+    secret_key = _kv_get("frs_secret_key", "")
     return jsonify({
         "has_keys"  : bool(api_key and secret_key),
         "api_key"   : str(api_key)    if api_key    else "",
