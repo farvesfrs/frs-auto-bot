@@ -47,3 +47,40 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+.replit
+replit.nix
+.breakpoints
+.upm/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+*.egg
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets & keys (never commit these)
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+
+# Logs
+*.log
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Build outputs
+artifacts/api-server/dist/
+artifacts/mockup-sandbox/dist/
