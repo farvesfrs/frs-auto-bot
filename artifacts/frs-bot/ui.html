@@ -520,9 +520,13 @@ input[type="password"] { letter-spacing: 2px; }
     <!-- Live-only fields -->
     <div class="live-only hidden" id="liveFields">
       <label>API Key</label>
-      <input type="password" id="api_key" placeholder="Enter your API Key">
+      <input type="text" id="api_key" placeholder="Enter your API Key" autocomplete="off">
       <label>Secret Key</label>
-      <input type="password" id="secret_key" placeholder="Enter your Secret Key">
+      <input type="password" id="secret_key" placeholder="Enter your Secret Key" autocomplete="off">
+      <div id="savedKeyInfo" style="display:none;margin-bottom:10px;padding:8px 12px;background:#031a0d;border:1px solid var(--green);border-radius:8px;font-size:12px;color:var(--muted);">
+        <span style="color:var(--green);">🔐 Saved key:</span> <span id="maskedKey">—</span>
+      </div>
+      <button type="button" onclick="saveKeys()" style="width:100%;padding:11px;background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer;margin-bottom:12px;transition:background 0.2s;" onmouseover="this.style.background='#0a1628'" onmouseout="this.style.background='transparent'">💾 SAVE KEYS PERMANENTLY</button>
     </div>
 
     <!-- Paper-only fields -->
@@ -732,6 +736,49 @@ function updatePaperStats(d) {
   }).join('');
 }
 
+async function loadKeys() {
+  try {
+    const res = await fetch('/load-keys');
+    const d   = await res.json();
+    if (d.has_keys) {
+      document.getElementById('api_key').value    = d.api_key;
+      document.getElementById('secret_key').value = d.secret_key;
+      document.getElementById('savedKeyInfo').style.display = 'block';
+      document.getElementById('maskedKey').textContent =
+        d.masked_api + ' / ' + d.masked_sec;
+    }
+  } catch(e) {
+    console.error('loadKeys error:', e);
+  }
+}
+
+async function saveKeys() {
+  const api_key    = document.getElementById('api_key').value.trim();
+  const secret_key = document.getElementById('secret_key').value.trim();
+  if (!api_key || !secret_key) {
+    showToast('❌ Enter both API Key and Secret first', 'var(--red)');
+    return;
+  }
+  try {
+    const res  = await fetch('/save-keys', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ api_key, secret_key }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('savedKeyInfo').style.display = 'block';
+      document.getElementById('maskedKey').textContent =
+        data.masked_api + ' / ' + data.masked_sec;
+      showToast(data.message, 'var(--green)');
+    } else {
+      showToast(data.message, 'var(--red)');
+    }
+  } catch(e) {
+    showToast('❌ Connection error', 'var(--red)');
+  }
+}
+
 async function startBot() {
   const isPaper = currentMode === 'paper';
   paperStartBal = parseFloat(document.getElementById('paper_balance').value) || 1000;
@@ -833,6 +880,7 @@ async function pollStatus() {
 }
 
 pollStatus();
+loadKeys();
 </script>
 </body>
 </html>

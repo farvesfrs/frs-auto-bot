@@ -21,6 +21,7 @@ import time
 import threading
 from datetime import datetime
 from flask import Flask, request, jsonify
+from replit import db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -526,6 +527,43 @@ def start():
 def stop():
     bot_state["running"] = False
     return jsonify({"ok": True, "message": "⏹ Bot Stopped!"})
+
+# ═══════════════════════════════════════════
+# KEY STORAGE — Replit DB (server-side only)
+# ═══════════════════════════════════════════
+def mask_key(key):
+    """Show first 4 and last 4 chars, mask the middle."""
+    if not key or len(key) < 9:
+        return "****"
+    return key[:4] + "*" * (len(key) - 8) + key[-4:]
+
+@app.route("/save-keys", methods=["POST"])
+def save_keys():
+    data = request.get_json()
+    api_key    = data.get("api_key", "").strip()
+    secret_key = data.get("secret_key", "").strip()
+    if not api_key or not secret_key:
+        return jsonify({"ok": False, "message": "❌ Both keys are required."})
+    db["frs_api_key"]    = api_key
+    db["frs_secret_key"] = secret_key
+    return jsonify({
+        "ok"        : True,
+        "message"   : "Keys Saved Permanently ✅",
+        "masked_api": mask_key(api_key),
+        "masked_sec": mask_key(secret_key),
+    })
+
+@app.route("/load-keys")
+def load_keys():
+    api_key    = db.get("frs_api_key",    "")
+    secret_key = db.get("frs_secret_key", "")
+    return jsonify({
+        "has_keys"  : bool(api_key and secret_key),
+        "api_key"   : str(api_key)    if api_key    else "",
+        "secret_key": str(secret_key) if secret_key else "",
+        "masked_api": mask_key(str(api_key))    if api_key    else "",
+        "masked_sec": mask_key(str(secret_key)) if secret_key else "",
+    })
 
 @app.route("/status")
 def status():
