@@ -6,7 +6,7 @@
 ╠══════════════════════════════════════════╣
 ║ Strategy : FRS SMC v5 + VWAP Zeiierman  ║
 ║          + CCI (25,EMA14) + Fibonacci   ║
-║ Timeframe: 4H                           ║
+║ Timeframe: 1H                           ║
 ║ Exchange : Binance → MEXC (Phase 2)     ║
 ║ Mode     : SPOT → FUTURES               ║
 ║ v1.2     : Paper Trading / Sim Mode     ║
@@ -286,10 +286,10 @@ def get_exchange(config, paper=False):
     raise ValueError(f"Unknown exchange: {name}")
 
 # ═══════════════════════════════════════════
-# FETCH 4H CANDLES
+# FETCH 1H CANDLES
 # ═══════════════════════════════════════════
 def fetch_candles(exchange, symbol, limit=300):
-    ohlcv = exchange.fetch_ohlcv(symbol, "4h", limit=limit)
+    ohlcv = exchange.fetch_ohlcv(symbol, "1h", limit=limit)
     df = pd.DataFrame(ohlcv,
         columns=["timestamp","open","high","low","close","volume"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
@@ -371,7 +371,7 @@ def bot_loop():
     log(f"🤖 FRS AUTO BOT v1.2 Started! {mode_label}")
     log(f"📡 Exchange : {ex_name}")
     log(f"🪙 Coin     : {symbol}")
-    log(f"⏰ Timeframe: 4H")
+    log(f"⏰ Timeframe: 1H")
     log(f"🎯 TP: {tp_pct}% | SL: {sl_pct}%")
 
     if paper:
