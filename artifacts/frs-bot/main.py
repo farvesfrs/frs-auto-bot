@@ -521,6 +521,10 @@ def bot_loop():
 # ═══════════════════════════════════════════
 # FLASK ROUTES
 # ═══════════════════════════════════════════
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok", "bot_running": bot_state["running"]}), 200
+
 @app.route("/")
 def index():
     ui_path = os.path.join(BASE_DIR, "ui.html")
